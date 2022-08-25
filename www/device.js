@@ -94,13 +94,18 @@ Device.prototype.getInfo = function (successCallback, errorCallback) {
 };
 
 Device.prototype.getUuid = function (successCallback, errorCallback) {
-    var me = this;
-    var _successCallback = function(info) {
-        me.uuid = info.uuid;
-        successCallback(info);
-    }
     argscheck.checkArgs('fF', 'Device.getUuid', arguments);
-    exec(_successCallback, errorCallback, 'Device', 'getUuid', []);
+    var me = this;
+    if(me.platform === "Android" && !me.uuid) {
+        var _successCallback = function(info) {
+            me.uuid = info.uuid;
+            successCallback(info);
+        }
+        exec(_successCallback, errorCallback, 'Device', 'getUuid', []);
+    } else {
+        successCallback({uuid: me.uuid});
+    }
+    
 };
 
 module.exports = new Device();
