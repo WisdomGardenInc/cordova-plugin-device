@@ -55,7 +55,6 @@ public class Device extends CordovaPlugin {
      */
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        // Device.uuid = getUuid();
     }
 
     /**
@@ -67,9 +66,13 @@ public class Device extends CordovaPlugin {
      * @return                  True if the action was valid, false if not.
      */
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if ("getDeviceInfo".equals(action)) {
+        if ("getConfig".equals(action)) {
+            JSONObject config = new JSONObject();
+            config.put("autoGetInfo", preferences.getBoolean("DeviceAutoGetInfo", true));
+            callbackContext.success(config);
+        } else if ("getDeviceInfo".equals(action)) {
             JSONObject r = new JSONObject();
-            r.put("uuid", "");
+            r.put("uuid", this.getUuid());
             r.put("version", this.getOSVersion());
             r.put("platform", this.getPlatform());
             r.put("model", this.getModel());
@@ -78,12 +81,7 @@ public class Device extends CordovaPlugin {
             r.put("serial", this.getSerialNumber());
             r.put("sdkVersion", this.getSDKVersion());
             callbackContext.success(r);
-        } else if("getUuid".equals(action)) {
-            JSONObject r = new JSONObject();
-            r.put("uuid", this.getUuid());
-            callbackContext.success(r);
-        }
-        else {
+        } else {
             return false;
         }
         return true;

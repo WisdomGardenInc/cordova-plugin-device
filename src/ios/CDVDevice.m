@@ -75,6 +75,15 @@
     return app_uuid;
 }
 
+- (void)getConfig:(CDVInvokedUrlCommand*)command
+{
+    id setting = [self.commandDelegate.settings objectForKey:@"deviceautogetinfo"];
+    BOOL autoGetInfo = setting == nil ? YES : [setting boolValue];
+    NSDictionary* config = @{@"autoGetInfo": @(autoGetInfo)};
+    CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:config];
+    [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+}
+
 - (void)getDeviceInfo:(CDVInvokedUrlCommand*)command
 {
     NSDictionary* deviceProperties = [self deviceProperties];

@@ -19,67 +19,74 @@
  *
  */
 
-var argscheck = require('cordova/argscheck');
-var channel = require('cordova/channel');
-var exec = require('cordova/exec');
-var cordova = require('cordova');
+var argscheck = require("cordova/argscheck");
+var channel = require("cordova/channel");
+var exec = require("cordova/exec");
+var cordova = require("cordova");
 
-channel.createSticky('onCordovaInfoReady');
+channel.createSticky("onCordovaInfoReady");
 // Tell cordova channel to wait on the CordovaInfoReady event
-channel.waitForInitialization('onCordovaInfoReady');
+channel.waitForInitialization("onCordovaInfoReady");
 
 /**
  * This represents the mobile device, and provides properties for inspecting the model, version, UUID of the
  * phone, etc.
  * @constructor
  */
-function Device () {
-    this.available = false;
-    this.platform = null;
-    this.version = null;
-    this.uuid = null;
-    this.cordova = null;
-    this.model = null;
-    this.manufacturer = null;
-    this.isVirtual = null;
-    this.serial = null;
-    this.isiOSAppOnMac = null;
+function Device() {
+  this.available = false;
+  this.platform = null;
+  this.version = null;
+  this.uuid = null;
+  this.cordova = null;
+  this.model = null;
+  this.manufacturer = null;
+  this.isVirtual = null;
+  this.serial = null;
+  this.isiOSAppOnMac = null;
 
-    var me = this;
+  var me = this;
 
-    channel.onCordovaReady.subscribe(function () {
-        me.getInfo(
-            function (info) {
-                // ignoring info.cordova returning from native, we should use value from cordova.version defined in cordova.js
-                // TODO: CB-5105 native implementations should not return info.cordova
-                var buildLabel = cordova.version;
-                me.available = true;
-                me.platform = info.platform;
-                me.version = info.version;
-                me.uuid = info.uuid;
-                me.cordova = buildLabel;
-                me.model = info.model;
-                me.isVirtual = info.isVirtual;
-                // isiOSAppOnMac is iOS specific. If defined, it will be appended.
-                if (info.isiOSAppOnMac !== undefined) {
-                    me.isiOSAppOnMac = info.isiOSAppOnMac;
-                }
-                me.manufacturer = info.manufacturer || 'unknown';
-                me.serial = info.serial || 'unknown';
-
-                // SDK Version is Android specific. If defined, it will be appended.
-                if (info.sdkVersion !== undefined) {
-                    me.sdkVersion = info.sdkVersion;
-                }
-
-                channel.onCordovaInfoReady.fire();
-            },
-            function (e) {
-                me.available = false;
-                console.error('[ERROR] Error initializing cordova-plugin-device: ' + e);
-            }
+  function getPluginConfig(callback) {
+    exec(
+      function (config) {
+        callback(config);
+      },
+      function (error) {
+        // Fall back to automatic collection when configuration is unavailable.
+        console.warn(
+          "[cordova-plugin-device] Config unavailable; using auto mode",
+          error,
         );
+        callback();
+      },
+      "Device",
+      "getConfig",
+      [],
+    );
+  }
+
+  channel.onCordovaReady.subscribe(function () {
+    getPluginConfig(function (config) {
+      if (
+        config &&
+        typeof config.autoGetInfo === "boolean" &&
+        config.autoGetInfo === false
+      ) {
+        console.log("[cordova-plugin-device] Auto getInfo disabled");
+        return;
+      }
+      me.getInfo(function () {
+        console.log("[cordova-plugin-device] Auto getInfo completed");
+      });
     });
+  });
+}
+
+function applyCallback(callback) {
+  if (typeof callback === "function") {
+    callback.apply(null, Array.prototype.slice.call(arguments, 1));
+  }
 }
 
 /**
@@ -89,23 +96,47 @@ function Device () {
  * @param {Function} errorCallback The function to call when there is an error getting the heading data. (OPTIONAL)
  */
 Device.prototype.getInfo = function (successCallback, errorCallback) {
-    argscheck.checkArgs('fF', 'Device.getInfo', arguments);
-    exec(successCallback, errorCallback, 'Device', 'getDeviceInfo', []);
-};
+  argscheck.checkArgs("fF", "Device.getInfo", arguments);
+  var me = this;
+  if (me.available === true) {
+    applyCallback(successCallback);
+    return;
+  }
+  exec(
+    function (info) {
+      // ignoring info.cordova returning from native, we should use value from cordova.version defined in cordova.js
+      // TODO: CB-5105 native implementations should not return info.cordova
+      var buildLabel = cordova.version;
+      me.available = true;
+      me.platform = info.platform;
+      me.version = info.version;
+      me.uuid = info.uuid;
+      me.cordova = buildLabel;
+      me.model = info.model;
+      me.isVirtual = info.isVirtual;
+      // isiOSAppOnMac is iOS specific. If defined, it will be appended.
+      if (info.isiOSAppOnMac !== undefined) {
+        me.isiOSAppOnMac = info.isiOSAppOnMac;
+      }
+      me.manufacturer = info.manufacturer || "unknown";
+      me.serial = info.serial || "unknown";
 
-Device.prototype.getUuid = function (successCallback, errorCallback) {
-    argscheck.checkArgs('fF', 'Device.getUuid', arguments);
-    var me = this;
-    if(me.platform === "Android" && !me.uuid) {
-        var _successCallback = function(info) {
-            me.uuid = info.uuid;
-            successCallback(info);
-        }
-        exec(_successCallback, errorCallback, 'Device', 'getUuid', []);
-    } else {
-        successCallback({uuid: me.uuid});
-    }
-    
+      // SDK Version is Android specific. If defined, it will be appended.
+      if (info.sdkVersion !== undefined) {
+        me.sdkVersion = info.sdkVersion;
+      }
+      channel.onCordovaInfoReady.fire();
+      applyCallback(successCallback);
+    },
+    function (error) {
+      me.available = false;
+      console.error("[cordova-plugin-device] getInfo failed", error);
+      applyCallback(errorCallback, error);
+    },
+    "Device",
+    "getDeviceInfo",
+    [],
+  );
 };
 
 module.exports = new Device();
