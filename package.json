@@ -3,6 +3,11 @@
   "version": "2.1.0-3",
   "description": "Cordova Device Plugin",
   "types": "./types/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest",
+    "registry": "https://registry.npmjs.org/"
+  },
   "cordova": {
     "id": "cordova-plugin-device",
     "platforms": [
@@ -14,7 +19,10 @@
       "osx"
     ]
   },
-  "repository": "github:apache/cordova-plugin-device",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache/cordova-plugin-device.git"
+  },
   "bugs": "https://github.com/apache/cordova-plugin-device/issues",
   "keywords": [
     "cordova",
